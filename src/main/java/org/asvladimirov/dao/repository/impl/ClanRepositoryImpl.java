@@ -6,6 +6,7 @@ import org.asvladimirov.dao.entity.ClanEntity;
 import org.asvladimirov.dao.repository.ClanRepository;
 import org.asvladimirov.util.ConnectionManager;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -27,6 +28,10 @@ public class ClanRepositoryImpl implements ClanRepository {
 
     private static final String INSERT_NEW_CLAN = "INSERT INTO clan(id,name,gold,members_amount) " +
             "VALUES (?,?,?,?)";
+
+    private static final String ADD_BALANCE_TO_CLAN = "UPDATE clan " +
+            "SET gold = gold + ? " +
+            "WHERE id = ?";
 
 
     @Override
@@ -66,7 +71,7 @@ public class ClanRepositoryImpl implements ClanRepository {
     }
 
     @Override
-    public boolean addNewClan(ClanEntity clanEntity) {
+    public boolean addClan(ClanEntity clanEntity) {
         log.info("Entering in method addNewClan with args {} of ClanRepository",clanEntity);
         try (var connection = ConnectionManager.get();
              var preparedStatement = connection.prepareStatement(INSERT_NEW_CLAN)){
@@ -80,6 +85,29 @@ public class ClanRepositoryImpl implements ClanRepository {
             return false;
         }
     }
+
+    @Override
+    public boolean addGoldToClanById(long clanId,int amount,Connection connection) {
+        try (
+             var preparedStatement = connection.prepareStatement(ADD_BALANCE_TO_CLAN)){
+            log.info("Entered in method addGoldToClanById with args {},{},{} of ClanRepository",clanId,amount,connection);
+            preparedStatement.setObject(1,amount);
+            preparedStatement.setObject(2,clanId);
+
+            var updatedRows = preparedStatement.executeUpdate();
+            if (updatedRows > 0) {
+                log.info("Successfully ,added {} gold to clan with id {}",amount,clanId);
+                return true;
+            } else {
+                log.info("Unsuccessfully,  not added {} gold to clan with id {}",amount,clanId);
+                return false;
+            }
+        } catch (SQLException e) {
+            log.info("Unsuccessfully, not added {} gold to clan with id {}",amount,clanId);
+            return false;
+        }
+    }
+
 
 
     public static ClanRepository getInstance() {
